@@ -16,6 +16,9 @@ dependencies {
     implementation("com.corundumstudio.socketio:netty-socketio:2.0.13")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("ch.qos.logback:logback-classic:1.5.12")
 }
 
 kotlin {
@@ -34,14 +37,6 @@ tasks {
             )
         }
     }
-}
-
-dependencies {
-
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("ch.qos.logback:logback-classic:1.5.12")
-    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.20")
 }
 
 kotlin {

@@ -149,8 +149,8 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
     fun removeClient(client: com.corundumstudio.socketio.SocketIOClient) {
         val transport = client.transport.name
         println("Disconnect attempt for client ${client.sessionId} with transport $transport")
-        if (transport != "WEBSOCKET") {
-            println("Ignoring disconnect for non-WebSocket transport $transport")
+        if (transport != "WEBSOCKET" || client.isChannelOpen) {
+            println("Ignoring disconnect for client ${client.sessionId} (transport $transport or channel open)")
             return
         }
         val gameId = clientToGameId.remove(client)
