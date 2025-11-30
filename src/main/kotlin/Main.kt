@@ -1,4 +1,3 @@
-
 package webRTCservice
 
 import com.corundumstudio.socketio.Configuration
@@ -29,6 +28,7 @@ fun main() {
     }
 
     server.start()
+    println("Voice signaling server started on port 8081")
 }
 
 class VoiceSignalingHandler(private val server: SocketIOServer) {
@@ -41,24 +41,33 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
     private val scope = CoroutineScope(Dispatchers.Default)
 
     fun addClient(client: com.corundumstudio.socketio.SocketIOClient) {
+        println("Client connected: ${client.sessionId}")
     }
 
     fun handleMessage(client: com.corundumstudio.socketio.SocketIOClient, message: String) {
+        println("Received message from client ${client.sessionId}: $message")
         try {
             val clientMessage = Json.decodeFromString<ClientMessage>(message)
-            val gameId = clientMessage.gameId ?: clientToGameId[client] ?: return
+            val gameId = clientMessage.gameId ?: clientToGameId[client] ?: run {
+                println("No gameId for client ${client.sessionId}")
+                return
+            }
+            println("Processing action '${clientMessage.action}' for gameId $gameId from client ${client.sessionId}")
 
             if (!usedGameIds.contains(gameId)) {
                 usedGameIds.add(gameId)
+                println("Added new gameId: $gameId")
             }
 
             when (clientMessage.action) {
                 "join" -> {
                     var username = clientMessage.username ?: UUID.randomUUID().toString().substring(0, 8)
                     val clientsInGame = gameToClients.getOrPut(gameId) { mutableListOf() }
+                    println("Join attempt for gameId $gameId, current players: ${clientsInGame.size}")
 
                     if (clientsInGame.size >= 2) {
                         client.sendEvent("error", "Game full")
+                        println("Game full for gameId $gameId")
                         return
                     }
 
@@ -71,8 +80,10 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
                     clientsInGame.add(client)
                     client.joinRoom(gameId)
                     resetHeartbeat(client)
+                    println("Client ${client.sessionId} joined gameId $gameId as $username")
 
                     client.sendEvent("joined", Json.encodeToString(JoinedResponse(username)))
+                    println("Sent 'joined' to client ${client.sessionId}")
 
                     val otherClients = clientsInGame.filter { it != client }
                     if (otherClients.isNotEmpty()) {
@@ -81,12 +92,14 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
                                 client.sendEvent("voice", Json.encodeToString(pendingMsg))
                             }
                             pendingVoiceMsgs.remove(gameId)
+                            println("Sent ${msgs.size} pending voice messages to client ${client.sessionId} for gameId $gameId")
                         }
                     }
                 }
 
                 "heartbeat" -> {
                     resetHeartbeat(client)
+                    println("Heartbeat received from client ${client.sessionId} for gameId $gameId")
                 }
 
                 "voice_offer", "voice_answer", "voice_ice" -> {
@@ -97,25 +110,30 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
                         sdpMid = clientMessage.sdpMid,
                         sdpMLineIndex = clientMessage.sdpMLineIndex
                     )
+                    println("Voice message type '${clientMessage.action}' received for gameId $gameId")
 
                     val clientsInGame = gameToClients[gameId] ?: return
-                    val otherClients = clientsInGame.filter { it != client }
+                    val otherClients = clientsInGame.filter { it != client && it.isChannelOpen }
 
                     if (otherClients.isNotEmpty()) {
                         otherClients.forEach { otherClient ->
                             otherClient.sendEvent("voice", Json.encodeToString(serverMsg))
+                            println("Forwarded voice message to other client ${otherClient.sessionId}")
                         }
                     } else {
                         pendingVoiceMsgs.getOrPut(gameId) { mutableListOf() }.add(serverMsg)
+                        println("No other clients in gameId $gameId, pending voice message")
                     }
                 }
 
                 else -> {
                     client.sendEvent("error", "Unknown action")
+                    println("Unknown action '${clientMessage.action}' from client ${client.sessionId}")
                 }
             }
         } catch (e: Exception) {
             client.sendEvent("error", "Invalid message")
+            println("Error handling message from client ${client.sessionId}: ${e.message}")
         }
     }
 
@@ -125,12 +143,20 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
             delay(10000L)
             removeClient(client)
         }
+        println("Reset heartbeat for client ${client.sessionId}")
     }
 
     fun removeClient(client: com.corundumstudio.socketio.SocketIOClient) {
+        val transport = client.transport.name
+        println("Disconnect attempt for client ${client.sessionId} with transport $transport")
+        if (transport != "WEBSOCKET") {
+            println("Ignoring disconnect for non-WebSocket transport $transport")
+            return
+        }
         val gameId = clientToGameId.remove(client)
         heartbeatJobs[client]?.cancel()
         heartbeatJobs.remove(client)
+        println("Client fully disconnected: ${client.sessionId}, gameId: $gameId")
 
         if (gameId != null) {
             val clientsInGame = gameToClients[gameId]
@@ -139,6 +165,7 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
                 gameToClients.remove(gameId)
                 usedGameIds.remove(gameId)
                 pendingVoiceMsgs.remove(gameId)
+                println("Removed empty gameId $gameId")
             }
         }
     }
@@ -148,6 +175,7 @@ class VoiceSignalingHandler(private val server: SocketIOServer) {
         do {
             gameId = String.format("%03d", kotlin.random.Random.nextInt(0, 1000))
         } while (usedGameIds.contains(gameId))
+        println("Generated new gameId: $gameId")
         return gameId
     }
 }
