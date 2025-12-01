@@ -10,7 +10,9 @@ import java.util.*
 
 fun main() {
     val config = Configuration().apply {
+        hostname = "0.0.0.0"
         port = 8081
+        origin = "*"
     }
     val server = SocketIOServer(config)
     val handler = VoiceSignalingHandler(server)

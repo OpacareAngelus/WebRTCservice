@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.2.10"
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
+    kotlin("jvm") version "2.0.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
     id("com.gradleup.shadow") version "9.2.2"
     id("application")
 }
@@ -14,8 +14,6 @@ repositories {
 
 dependencies {
     implementation("com.corundumstudio.socketio:netty-socketio:2.0.13")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("ch.qos.logback:logback-classic:1.5.12")
@@ -27,20 +25,17 @@ kotlin {
 
 tasks {
     shadowJar {
-        archiveBaseName.set("upload_server")
+        archiveBaseName.set("webRTCservice")
         archiveVersion.set("")
         archiveClassifier.set("")
         mergeServiceFiles()
+        exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
         manifest {
             attributes(
-                "Main-Class" to "MainKt"
+                "Main-Class" to "server.MainKt"
             )
         }
     }
-}
-
-kotlin {
-    jvmToolchain(18)
 }
 
 application {
