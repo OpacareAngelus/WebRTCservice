@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.0.20"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.20"
+    kotlin("jvm") version "1.9.20"
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.20"
     id("com.gradleup.shadow") version "9.2.2"
     id("application")
 }
@@ -32,12 +32,12 @@ tasks {
         exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
         manifest {
             attributes(
-                "Main-Class" to "server.MainKt"
+                "Main-Class" to "webRTCservice.MainKt"
             )
         }
     }
 }
 
 application {
-    mainClass.set("server.MainKt")
+    mainClass.set("webRTCservice.MainKt")
 }
